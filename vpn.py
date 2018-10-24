@@ -97,7 +97,7 @@ def main():
 				mylogger(e)
 				exit_val=1
 		else:
-				if verify_passwd(conn, usrname, otp) and verify_otp(conn, usrname):
+				if verify_passwd(conn, usrname) and verify_otp(conn, usrname, otp):
 						exit_val=0
 						mylogger('HASH Access-Accept')
 				else:
