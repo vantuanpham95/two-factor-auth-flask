@@ -58,8 +58,8 @@ def select_hashed_passwd(conn, username):
 	hassed_passwd = cur.fetchone()[0]
 	return hassed_passwd
 
-def hashing_passwd(password):
-	return(generate_password_hash(password))
+def verify_passwd(conn, username, password):
+	return check_password_hash(select_hashed_passwd(conn, username), password)
 
 def main():
     database = "db.sqlite"
@@ -86,8 +86,8 @@ def main():
  		else:
  			print("Username not exist!")
 
- 		print("5. Hasshing inputed passwd")
- 		print(hashing_passwd("123456"))
+ 		print("6. Verify Password")
+ 		print(verify_passwd(conn, "tuanpv", "1234"))
 
 if __name__ == '__main__':
     main()
