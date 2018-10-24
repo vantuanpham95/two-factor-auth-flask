@@ -12,35 +12,28 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 import onetimepass
  
+debug = 0
  
 def create_connection(db_file):
-    try:
-        conn = sqlite3.connect(db_file)
-        return conn
-    except Error as e:
-        print(e)
+	try:
+		conn = sqlite3.connect(db_file)
+		return conn
+	except Error as e:
+		print(e)
  
-    return None
- 
- 
-def select_all_users(conn):
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM users")
- 
-    rows = cur.fetchall()
- 
-    for row in rows:
-        print(row)
- 
- 
-def select_task_by_id(conn, id):
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM users WHERE id=?", (id,))
- 
-    rows = cur.fetchall()
- 
-    for row in rows:
-        print(row)
+	return None
+
+
+def mylogger(message):
+		timestamp=datetime.datetime.now().strftime('%a %b %e %H:%M:%S %Y us=%f')
+		processname=__file__
+		usrname=os.getenv('username')
+		# usrname = "tuanpv"
+		untrusted_ip = os.getenv('untrusted_ip')
+		untrusted_port = os.getenv('untrusted_port')
+		### OPENVPN LOGGING FORMAT
+		print '{0} {4}:{5} cmd={1} username={2} {3}'.format(timestamp, processname, usrname, message, untrusted_ip, untrusted_port)
+		return
 
 def username_is_exist(conn, username):
 	cur = conn.cursor()
@@ -71,39 +64,53 @@ def verify_otp(conn, username, otp):
 	return onetimepass.valid_totp(otp, select_otp_secret(conn, username))
 
 def main():
-    database = "db.sqlite"
+	database = "db.sqlite"
  
-    # create a database connection
-    conn = create_connection(database)
-    with conn:
-        # print("1. Query user by id:")
-        # select_task_by_id(conn,1)
- 
-        # print("2. Query all users")
-        # select_all_users(conn)
- 
- 		# print("3. Check if user is exist")
- 		# if username_is_exist(conn, "tuanpv") == True:
- 		# # print(username_is_exist(conn, "tuanpv"))
- 		# 	print("YEP")
- 		# else:
- 		# 	print("No")
+	# create a database connection
+	conn = create_connection(database)
+	with conn:
+		try:
+				# usrname=os.getenv('username')
+				# passwd =os.getenv('password')
+				usrname = raw_input('username: ')
+				passwd = raw_input('Enter passwd: ')
+				otp=passwd[:6]
+				real_passwd=passwd[6:]
 
- 		# print("4. Select Hashed password")
- 		# if username_is_exist(conn, "tuanpv"):
- 		# 	print(select_hashed_passwd(conn, "tuanpv"))
- 		# else:
- 		# 	print("Username not exist!")
+				if usrname is None:
+						myerr=('username is missing')
+						raise Exception(myerr)
 
- 		# print("6. Verify Password")
- 		# print(verify_passwd(conn, "tuanpv", "1234"))
+				if passwd is None:
+						myerr=('password is missing')
+						raise Exception(myerr)
 
- 		print("7. Select secret otp:")
- 		print(select_otp_secret(conn, "tuanpv"))
+				### IF DEBUGGING IS ON THEN WE DENY ACCESS TO ALL USERS!
+				if debug == 1:
+						mylogger(os.getresuid())
+						for variable in os.environ:
+								value = os.getenv(variable)
+								mylogger('ENV {0}={1}'.format(variable,value))
+						sys.exit(1)
 
- 		print("8. Check verify otp:")
- 		input_otp = input("Enter your 6 digits: ")
- 		print(verify_otp(conn, "tuanpv", input_otp))
+		except Exception as e:
+				mylogger(e)
+				exit_val=1
+		else:
+				if verify_passwd(conn, usrname, otp) and verify_otp(conn, usrname):
+						exit_val=0
+						mylogger('HASH Access-Accept')
+				else:
+						exit_val=1
+						mylogger('HASH Access-Reject')
+
+
+		sys.exit(exit_val)
+
+		### IF YOU FORGET TO SET exit_val DURING SCRIPT EXECUTION
+		mylogger('ERROR: unexpected situation')
+		### DENY ACCESS
+		sys.exit(1)
 
 if __name__ == '__main__':
-    main()
+	main()
