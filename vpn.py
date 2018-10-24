@@ -10,7 +10,7 @@ import config
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-
+import onetimepass
  
  
 def create_connection(db_file):
@@ -61,6 +61,15 @@ def select_hashed_passwd(conn, username):
 def verify_passwd(conn, username, password):
 	return check_password_hash(select_hashed_passwd(conn, username), password)
 
+def select_otp_secret(conn, username):
+	cur = conn.cursor()
+	cur.execute("SELECT otp_secret FROM users WHERE username=?", (username,))
+	otp_secret = cur.fetchone()[0]
+	return otp_secret
+
+def verify_otp(conn, username, otp):
+	return onetimepass.valid_totp(otp, select_otp_secret(conn, username))
+
 def main():
     database = "db.sqlite"
  
@@ -80,14 +89,21 @@ def main():
  		# else:
  		# 	print("No")
 
- 		print("4. Select Hashed password")
- 		if username_is_exist(conn, "tuanpv"):
- 			print(select_hashed_passwd(conn, "tuanpv"))
- 		else:
- 			print("Username not exist!")
+ 		# print("4. Select Hashed password")
+ 		# if username_is_exist(conn, "tuanpv"):
+ 		# 	print(select_hashed_passwd(conn, "tuanpv"))
+ 		# else:
+ 		# 	print("Username not exist!")
 
- 		print("6. Verify Password")
- 		print(verify_passwd(conn, "tuanpv", "1234"))
+ 		# print("6. Verify Password")
+ 		# print(verify_passwd(conn, "tuanpv", "1234"))
+
+ 		print("7. Select secret otp:")
+ 		print(select_otp_secret(conn, "tuanpv"))
+
+ 		print("8. Check verify otp:")
+ 		input_otp = input("Enter your 6 digits: ")
+ 		print(verify_otp(conn, "tuanpv", input_otp))
 
 if __name__ == '__main__':
     main()
